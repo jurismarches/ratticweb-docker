@@ -1,0 +1,52 @@
+# Note that we do not try too hard to optimize image size
+
+FROM python:2.7.8-slim AS rattic
+ARG rattic_uid=1000
+ARG rattic_gid=1000
+ARG rattic_git_repo
+ARG rattic_backup_dir
+ARG rattic_release_version
+ENV PYTHONBUFFERED 1
+# make user ubuntu
+RUN groupadd -g $rattic_gid rattic && \
+    useradd -u $rattic_uid -g rattic -m rattic
+RUN set -x && \
+    apt-get update && \
+    apt-get -y --force-yes install \
+      git \
+      libpq-dev \
+      libsasl2-dev \
+      libldap2-dev \
+      libssl-dev \
+      libxml2-dev \
+      libxslt1-dev \
+      zlib1g-dev \
+      build-essential
+RUN set -x && \
+    git clone $rattic_git_repo /opt/rattic && \
+    (cd /opt/rattic; git checkout $rattic_release_version ) && \
+    mkdir -p /opt/rattic/static && \
+    mkdir -p $rattic_backup_dir && \
+    mkdir -p /home/rattic/.gnupg && \
+    chmod go-rwx /home/rattic/.gnupg && \
+    chown -R rattic:rattic /opt/rattic /home/rattic/.gnupg $rattic_backup_dir
+RUN set -x && \
+    pip install gunicorn==19.4.5 && \
+    pip install Jinja2 && \
+    pip install -r /opt/rattic/requirements-pgsql.txt
+#~ kombu 3.0.30 corrects a bug, for python > 2.17.11
+#~ also this means adding the SOUTH_MIGRATION_MODULES parameter
+#~ RUN set -x && \
+#~     pip install kombu==3.0.30 && \
+#~     echo "SOUTH_MIGRATION_MODULES = {'kombu.transport.django': 'kombu.transport.django.south_migrations',}" >> /opt/rattic/ratticweb/settings.py && \
+
+# ecdsa==0.13 is the right dependency for paramiko
+RUN set -x && \
+    pip install ecdsa==0.13
+COPY rattic-entrypoint.sh /entrypoint.sh
+COPY --chown=rattic:rattic rattic-local.cfg /opt/rattic/rattic-local.cfg
+RUN set -x && \
+    chmod +x /entrypoint.sh
+WORKDIR /opt/rattic
+ENTRYPOINT ["/entrypoint.sh"]
+USER rattic:rattic

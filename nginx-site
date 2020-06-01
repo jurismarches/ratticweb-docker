@@ -1,0 +1,36 @@
+server {
+    listen                  80;
+    server_name             ${rattic_hostname};
+    proxy_connect_timeout   600s;
+    proxy_read_timeout      600s;
+    client_max_body_size    100m;
+
+    location /  {
+
+        proxy_pass          http://rattic:8000/;
+
+        proxy_set_header    Host $host:$proxy_port;
+        proxy_set_header    X-Real-IP $remote_addr;
+        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+        location /static {
+        alias               /srv/rattic/static;
+        expires             10d;
+    }
+        location /media {
+        alias               /srv/rattic/media;
+        expires             -1;
+    }
+        location /updloads {
+        alias               /srv/rattic/uploads;
+        expires             -1;
+    }
+    
+    error_page      502     /error-502.html;
+
+    location /error-502.html {
+      internal;
+      root /usr/share/nginx/html/;
+    }
+}

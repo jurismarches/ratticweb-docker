@@ -1,0 +1,13 @@
+rattic_dir_path=/opt/ratic
+rattic_db_name=rattic
+rattic_db_user=rattic
+rattic_user_username=admin
+production_user_name=rattic
+
+# MANDATORY
+rattic_user_email=fixme@example.com
+# List of GPG keys authorized to decrypt backup (comma separated)
+rattic_backup_recipients=YOURKEYID
+# secrets
+rattic_db_password=FIXME
+rattic_secret_key=FIXME

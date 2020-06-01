@@ -1,0 +1,5 @@
+rattic_backup_dir=/var/backups/rattic
+rattic_git_repo=git://github.com/csakoda/RatticWeb.git
+rattic_release_version=master
+http_hostname=localhost
+http_port=8000

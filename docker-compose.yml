@@ -1,0 +1,53 @@
+version: '3.4'
+
+services:
+  rattic:
+    build:
+      context: .
+      dockerfile: "Dockerfile.python"
+      args:
+        rattic_backup_dir: $rattic_backup_dir
+        rattic_git_repo: $rattic_git_repo
+    restart: "no"
+    volumes:
+      - ./rattic_public.key:/opt/rattic_public.key
+      - ./backup:$rattic_backup_dir
+      - rattic-static:/opt/rattic/static
+      - rattic-media:/opt/rattic/media
+      - rattic-uploads:/opt/rattic/uploads
+      - rattic-gnupg:/home/rattic/.gnupg
+    env_file:
+      - .rattic-env
+    environment:
+      rattic_backup_dir: $rattic_backup_dir
+      rattic_hostname: $http_hostname
+    depends_on:
+      - postgresql
+  postgresql:
+    image: postgres:12.1
+    restart: "no"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+      - ./postgresql-init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+    env_file:
+      - .rattic-env
+  nginx:
+    image: nginx:1.17.10
+    ports:
+      - "127.0.0.1:$http_port:80"
+    environment:
+      rattic_hostname: $http_hostname
+    volumes:
+      - ./nginx-site:/opt/nginx-site
+      - rattic-static:/srv/rattic/static:ro
+      - rattic-media:/srv/rattic/media:ro
+      - rattic-uploads:/srv/rattic/uploads:ro
+    # see nginx docker doc
+    command: /bin/bash -c "envsubst '$$rattic_hostname' < /opt/nginx-site > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
+
+volumes:
+  postgres-data:
+  rattic-static:
+  rattic-media:
+  rattic-uploads:
+  rattic-gnupg:
