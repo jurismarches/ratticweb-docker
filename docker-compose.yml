@@ -8,9 +8,12 @@ services:
       args:
         rattic_backup_dir: $rattic_backup_dir
         rattic_git_repo: $rattic_git_repo
+        postgresql_version: $postgresql_version
     restart: "no"
     volumes:
       - ./rattic_public.key:/opt/rattic_public.key
+      # this is for recovery
+      - ./rattic_private.key:/opt/rattic_private.key
       - ./backup:$rattic_backup_dir
       - rattic-static:/opt/rattic/static
       - rattic-media:/opt/rattic/media
@@ -24,13 +27,15 @@ services:
     depends_on:
       - postgresql
   postgresql:
-    image: postgres:12.1
+    image: postgres:$postgresql_version
     restart: "no"
     volumes:
       - postgres-data:/var/lib/postgresql/data/
       - ./postgresql-init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
     env_file:
       - .rattic-env
+    environment:
+      POSTGRES_PASSWORD: $postgresql_pwd
   nginx:
     image: nginx:1.17.10
     ports:

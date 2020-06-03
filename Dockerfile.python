@@ -6,13 +6,20 @@ ARG rattic_gid=1000
 ARG rattic_git_repo
 ARG rattic_backup_dir
 ARG rattic_release_version
+ARG postgresql_version
 ENV PYTHONBUFFERED 1
 # make user ubuntu
 RUN groupadd -g $rattic_gid rattic && \
     useradd -u $rattic_uid -g rattic -m rattic
+# We install:
+# - gnupg and postgresql-client-common to be able to restore a backup
+# - git to be able to clone project
+# - build-essential and libs to install packages
 RUN set -x && \
     apt-get update && \
     apt-get -y --force-yes install \
+      gnupg \
+      postgresql-client-$postgresql_version \
       git \
       libpq-dev \
       libsasl2-dev \
@@ -22,6 +29,7 @@ RUN set -x && \
       libxslt1-dev \
       zlib1g-dev \
       build-essential
+# make needed directories
 RUN set -x && \
     git clone $rattic_git_repo /opt/rattic && \
     (cd /opt/rattic; git checkout $rattic_release_version ) && \
@@ -30,17 +38,15 @@ RUN set -x && \
     mkdir -p /home/rattic/.gnupg && \
     chmod go-rwx /home/rattic/.gnupg && \
     chown -R rattic:rattic /opt/rattic /home/rattic/.gnupg $rattic_backup_dir
+# install:
+# - gunicorn to serve app
+# - jinja2 to create conf files (in an identical manner as ansible)
+# - requirements for rattic, using postgressql
 RUN set -x && \
     pip install gunicorn==19.4.5 && \
     pip install Jinja2 && \
     pip install -r /opt/rattic/requirements-pgsql.txt
-#~ kombu 3.0.30 corrects a bug, for python > 2.17.11
-#~ also this means adding the SOUTH_MIGRATION_MODULES parameter
-#~ RUN set -x && \
-#~     pip install kombu==3.0.30 && \
-#~     echo "SOUTH_MIGRATION_MODULES = {'kombu.transport.django': 'kombu.transport.django.south_migrations',}" >> /opt/rattic/ratticweb/settings.py && \
-
-# ecdsa==0.13 is the right dependency for paramiko
+# fix ecdsa==0.13 is the right dependency for paramiko
 RUN set -x && \
     pip install ecdsa==0.13
 COPY rattic-entrypoint.sh /entrypoint.sh
