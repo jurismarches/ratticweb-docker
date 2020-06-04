@@ -1,4 +1,4 @@
-rattic_dir_path=/opt/ratic
+rattic_dir_path=/opt/rattic
 rattic_db_name=rattic
 rattic_db_user=rattic
 rattic_user_username=admin
